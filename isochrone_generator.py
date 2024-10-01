@@ -6,8 +6,12 @@ import subprocess
 import sys
 
 def install(package):
-    """Installs the package using pip."""
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    """Installs the package using conda."""
+    try:
+        subprocess.check_call(["conda", "install", "--yes", package])
+    except subprocess.CalledProcessError:
+        print(f"Failed to install {package}. Trying to install it via pip.")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
 # List of packages to ensure they are installed
 required_packages = [
@@ -52,6 +56,8 @@ for file in files:
 
 # Read input file
 input_df = pd.read_excel("20240930 example addresses.xlsx")
+
+input_df = input_df[:1]
 
 # Display the DataFrame
 print(input_df)
@@ -243,7 +249,8 @@ def plot_transparent_layers(geo_dfs):
 ## -------------------------------------------------------------------------------------------------------------------------------------
 
 # Load the .env file
-load_dotenv()
+load_dotenv(r"C:\Users\Joey.Diekstra\OneDrive - OC&C Strategy Consultants\Personal\python\location_analytics\isochrones\.env")
+
 
 # Retrieve the variables
 application_id = os.getenv('X_APPLICATION_ID')
