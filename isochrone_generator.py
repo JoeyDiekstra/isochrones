@@ -11,12 +11,12 @@ def install(package):
         subprocess.check_call(["conda", "install", "--yes", package])
     except subprocess.CalledProcessError:
         print(f"Failed to install {package}. Trying to install it via pip.")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        subprocess.check_call([sys.executable, "-m", "conda", "install", package])
 
 # List of packages to ensure they are installed
 required_packages = [
     "pandas", "geopandas", "requests", "matplotlib",
-    "shapely", "tqdm", "python-dotenv"
+    "shapely", "tqdm", "python-dotenv", "streamlit"
 ]
 
 # Ensure all required packages are installed
@@ -27,6 +27,7 @@ for package in required_packages:
         install(package)
 
 # Now import the required modules
+import streamlit as st
 import os
 import time
 import pandas as pd
