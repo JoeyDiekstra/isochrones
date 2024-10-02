@@ -1,0 +1,14 @@
+# Step 1: Install Conda (only if not already installed)
+
+# Step 2: Get the environment.yml file and navigate to its directory
+cd /path/to/environment/yml/file
+
+# Step 3: Create the environment
+conda env create -f environment.yml
+
+# Step 4: Activate the environment
+conda activate isochrone_env
+
+# Step 5: Navigate to the Streamlit script's directory and run the app
+cd /path/to/streamlit/script
+streamlit run streamlit_isochrone_generator.py
