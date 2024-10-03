@@ -3,7 +3,7 @@
 ## -------------------------------------------------------------------------------------------------------------------------------------
 
 # # Run Streamlit in powershell
-# cd "C:\Users\Joey.Diekstra\OneDrive - OC&C Strategy Consultants\Personal\python\location_analytics\isochrones"
+# cd "C:\Users\Joey.Diekstra\OneDrive - OC&C Strategy Consultants\Personal\python\location_analytics\isochrones\pages"
 # streamlit run streamlit_isochrone_generator.py
 
 # Now import the required modules
@@ -67,6 +67,9 @@ if uploaded_file is not None:
 # ## -------------------------------------------------------------------------------------------------------------------------------------
 # ## Define functions
 # ## -------------------------------------------------------------------------------------------------------------------------------------
+
+def show():
+    st.title("Isochrone Generator")
 
 def get_recent_monday_noon():
     """
@@ -250,6 +253,11 @@ def plot_transparent_layers(geo_dfs):
     # Displaying the plot in Streamlit
     st.pyplot(fig)
 
+# Define a function to clear all session state variables
+def clear_session_state():
+    for key in st.session_state.keys():
+        st.session_state[key] = None
+
 # ## -------------------------------------------------------------------------------------------------------------------------------------
 # ## Generate data
 # ## -------------------------------------------------------------------------------------------------------------------------------------
@@ -361,11 +369,6 @@ if st.session_state.geo_dfs and not st.session_state.output_dir_set:
 # Initialize session state variables if they don't exist
 if 'output_dir_set' not in st.session_state:
     st.session_state.output_dir_set = False
-
-# Define a function to clear all session state variables
-def clear_session_state():
-    for key in st.session_state.keys():
-        st.session_state[key] = None
 
 # Step 3: Provide option to start new data generation if output directory is set
 if st.session_state.output_dir_set:
