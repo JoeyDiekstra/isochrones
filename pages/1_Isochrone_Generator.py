@@ -2,11 +2,6 @@
 ## Import packages
 ## -------------------------------------------------------------------------------------------------------------------------------------
 
-# # Run Streamlit in powershell
-# cd "C:\Users\Joey.Diekstra\OneDrive - OC&C Strategy Consultants\Personal\python\location_analytics\isochrones\pages"
-# streamlit run streamlit_isochrone_generator.py
-
-# Now import the required modules
 import streamlit as st
 import os
 import time
@@ -17,6 +12,11 @@ import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, MultiPolygon
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime, timedelta
+import folium
+import zipfile
+from io import BytesIO
+import folium
+from streamlit_folium import folium_static
 
 ## -------------------------------------------------------------------------------------------------------------------------------------
 ## Read data
@@ -50,8 +50,6 @@ if uploaded_file is not None:
     try:
         # Read the Excel file
         input_df = pd.read_excel(uploaded_file)
-
-        input_df = input_df[:1]  # delete in final code
 
         # Display the DataFrame (optional)
         st.write(input_df.head())
@@ -223,35 +221,53 @@ def get_isochrones(df, travel_times, transport_type, lat_col, lon_col, id_col):
     
     return geo_dfs
 
-def plot_transparent_layers(geo_dfs):
+def plot_all_isochrones(geo_dfs):
     """
-    Plots each GeoDataFrame in `geo_dfs` as transparent layers with beautiful colors.
+    Plots all isochrones from GeoDataFrames as transparent layers on a Folium map.
 
     Parameters:
         geo_dfs (dict): A dictionary where keys are labels and values are GeoDataFrames.
     """
-    fig, ax = plt.subplots(figsize=(10, 10))
+    # Calculate the mean latitude and longitude for initial map centering
+    latitudes = []
+    longitudes = []
+    for gdf in geo_dfs.values():
+        latitudes.extend(gdf.geometry.centroid.y)
+        longitudes.extend(gdf.geometry.centroid.x)
 
-    # Defining color palette and labels
+    start_coords = [sum(latitudes) / len(latitudes), sum(longitudes) / len(longitudes)]
+
+    # Initialize a base map centered at the calculated coordinates
+    m = folium.Map(location=start_coords, tiles='CartoDB positron', zoom_start=13)
+
+    # Define color palette
     colors = ['blue', 'green', 'red', 'purple', 'orange']
-    labels = list(geo_dfs.keys())
 
-    for i, (key, gdf) in enumerate(geo_dfs.items()):
-        gdf.plot(ax=ax, color=colors[i], alpha=0.5, edgecolor='k', label=f'{labels[i]}')
+    for i, (label, gdf) in enumerate(geo_dfs.items()):
+        # Add GeoJSON layer to the map
+        folium.GeoJson(
+            data=gdf,
+            name=label,
+            style_function=lambda x, color=colors[i % len(colors)]: {
+                'fillColor': color,
+                'color': 'black',
+                'weight': 1,
+                'fillOpacity': 0.5
+            }
+        ).add_to(m)
+    
+    # Add layer control
+    folium.LayerControl().add_to(m)
 
-    # Adding a legend
-    plt.legend(title="Travel Time", loc='upper left')
+    # Return the map object
+    return m
 
-    # Setting title and axis labels
-    plt.title("Isochrones for Travel Times", fontsize=15)
-    plt.xlabel("Longitude")
-    plt.ylabel("Latitude")
-
-    # Adding grid for better readability
-    plt.grid(True)
-
-    # Displaying the plot in Streamlit
-    st.pyplot(fig)
+def display_isochrone_map(geo_dfs):
+    # Call the plotting function
+    m = plot_all_isochrones(geo_dfs)
+    
+    # Display using folium_static
+    folium_static(m)
 
 # Define a function to clear all session state variables
 def clear_session_state():
@@ -282,7 +298,6 @@ if uploaded_env_file is not None:
         # Handle any exceptions that occur
         st.error(f'An error occurred: {e}')
 
-
 # Retrieve the variables
 application_id = os.getenv('X_APPLICATION_ID')
 api_key = os.getenv('X_API_KEY')
@@ -294,7 +309,6 @@ headers = {
     'X-Application-Id': application_id,
     'X-Api-Key': api_key
 }
-
 
 # Initialize session_state variables if they don't exist
 if 'geo_dfs' not in st.session_state:
@@ -338,43 +352,48 @@ if st.button('Generate Isochrones') and not st.session_state.process_started:
         id_col=unique_identifier.strip()
     )
 
-    plot_transparent_layers(geo_dfs)
+    # Plot the isochrones
+    display_isochrone_map(geo_dfs)  
     
     st.session_state.geo_dfs = geo_dfs
     st.success("Isochrones generated successfully.")
 
-# Step 2: Specify location to save generated output
-if st.session_state.geo_dfs and not st.session_state.output_dir_set:
-    output_dir = st.text_input("Specify the output directory to save the GeoPackage files")
-    
-    if output_dir and st.button('Save Output'):
-        try:
-            current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
-            
-            if not os.path.exists(rf"{output_dir}"):
-                os.makedirs(rf"{output_dir}")
-                
-            for key, gdf in st.session_state.geo_dfs.items():
-                gpkg_path = os.path.join(rf"{output_dir}", f"{current_datetime}_{key}_output.gpkg")
-                gdf.to_file(gpkg_path, layer=key, driver='GPKG')
-                st.write(f"GeoPackage for {key} has been created at: {gpkg_path}")
-            
-            st.success("All GeoPackages have been created successfully.")
-            st.session_state.output_dir_set = True
-        
-        except Exception as e:
-            st.error(f"An error occurred while saving the files: {e}")
 
+# Step 2: Provide a download option for the generated output
+if st.session_state.geo_dfs and not st.session_state.output_dir_set:
+    try:
+        current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+        zip_buffer = BytesIO()  # Create an in-memory buffer for the ZIP file
+
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for key, gdf in st.session_state.geo_dfs.items():
+                # Prepare each GeoPackage file in memory
+                gpkg_filename = f"{current_datetime}_{key}_output.gpkg"
+                with BytesIO() as file_buffer:
+                    gdf.to_file(file_buffer, layer=key, driver='GPKG')
+                    file_buffer.seek(0)
+                    zf.writestr(gpkg_filename, file_buffer.read())  # Write to ZIP
+
+        zip_buffer.seek(0)
+
+        # Offer the ZIP file for download
+        st.download_button(
+            label="Download GeoPackages",
+            data=zip_buffer,
+            file_name=f'isochrones_{current_datetime}.zip',
+            mime='application/zip',
+            on_click=clear_session_state  # Callback function to clear session state
+        )
+        
+        # st.success("All GeoPackages have been prepared for download.")
+        st.session_state.output_dir_set = True
+
+    except Exception as e:
+        st.error(f"An error occurred while creating the download package: {e}")
 
 # Initialize session state variables if they don't exist
 if 'output_dir_set' not in st.session_state:
     st.session_state.output_dir_set = False
 
-# Step 3: Provide option to start new data generation if output directory is set
-if st.session_state.output_dir_set:
-    if st.button("Generate New Data"):
-        # Clear session state variables
-        clear_session_state()
-        # Optionally, reset other input fields if needed
-        st.rerun()
+
 
