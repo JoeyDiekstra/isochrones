@@ -11,4 +11,4 @@ conda activate isochrone_env
 
 # Step 5: Navigate to the Streamlit script's directory and run the app
 cd /path/to/streamlit/script
-streamlit run streamlit_isochrone_generator.py
+streamlit run Home.py

@@ -152,14 +152,15 @@ if st.button("Read data"):
             except Exception as e:
                 st.error(f'Error converting CBS GeoDataFrame to CRS 28992: {e}')
 
-            # Reset year input
-            st.session_state.year = ""
             
             # Set data_read to True once everything is processed successfully
             st.session_state.data_read = True
             st.session_state.geo_dfs = geo_dfs
             st.session_state.gdf_names_dict = gdf_names_dict
             st.session_state.cbs_geo_df = cbs_geo_df
+
+            # Fix: Reset data_downloaded here
+            st.session_state.data_downloaded = False
 
         except Exception as e:
             read_info.empty()
