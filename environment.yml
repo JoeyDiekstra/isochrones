@@ -14,7 +14,4 @@ dependencies:
   - openpyxl=3.0.10
   - folium=0.14.0
   - tqdm=4.65.0
-
-# Optional: Include pip dependencies if needed
-#  - pip:
-#    - any_other_package==version_number
+  - streamlit-folium=0.23.0

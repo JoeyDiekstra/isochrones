@@ -23,8 +23,8 @@ from streamlit_folium import folium_static
 # Introduce page
 st.title("Isochrone Amenities Analysis")
 st.markdown("""
-This application calculates the availability and proximity of various amenities (e.g., schools, hospitals, shops) 
-within each isochrone generated in the previous step.
+This application calculates the availability of various amenities (e.g., schools, supermarkets, shops) within each isochrone generated in step 1. 
+For each isochrone, it provides a count of the different types of amenities.
 """)
 
 
@@ -110,10 +110,17 @@ if 'calculate_amenities' not in st.session_state:
 
 # Step 1: Upload Data Files and Enter Input Fields
 uploaded_files = st.file_uploader(
-    "Upload the GPKG file(s) here",
+    "Upload the GPKG file(s) generated in step 1 here:",
     type=["gpkg"],
     accept_multiple_files=True
 )
+
+st.markdown("""
+Please upload the Excel file containing the following columns:
+- **1. Latitude**: A column with numerical data type.
+- **2. Longitude**: A column with numerical data type.
+- **3. Amenity Type**: A column containing the type of amenity, allowing for categorisation and counting by type.
+""")
 
 uploaded_excel_file = st.file_uploader(
     "Upload the Excel file here",
@@ -122,11 +129,10 @@ uploaded_excel_file = st.file_uploader(
 
 latitude_column = st.text_input("Enter the latitude column name")
 longitude_column = st.text_input("Enter the longitude column name")
-unique_identifier = st.text_input("Enter the unique identifier column name (e.g., uid)")
 amenity_type = st.text_input("Enter the amenity type column name (e.g., type)")
 
 # Button to read data
-if st.button('Read Data') and uploaded_files and uploaded_excel_file and all([latitude_column, longitude_column, unique_identifier, amenity_type]):
+if st.button('Read Data') and uploaded_files and uploaded_excel_file and all([latitude_column, longitude_column, amenity_type]):
     try:
         # Show reading message
         msg_placeholder = st.empty()
@@ -150,7 +156,14 @@ if st.button('Read Data') and uploaded_files and uploaded_excel_file and all([la
 
         # Read input Excel file
         input_df = pd.read_excel(uploaded_excel_file)
+
+        # Create a new column 'geometry' in input_df by applying a function to each row.
+        # The function takes two arguments, longitude and latitude, and uses them to create a Point object.
         input_df['geometry'] = input_df.apply(lambda row: Point(row[longitude_column], row[latitude_column]), axis=1)
+
+        # Convert the DataFrame into a GeoDataFrame
+        # This assigns the new 'geometry' column as the geometry for the GeoDataFrame
+        # Set the coordinate reference system (CRS) to "EPSG:4326", which corresponds to WGS84 (latitude/longitude)
         input_gdf = gpd.GeoDataFrame(input_df, geometry='geometry', crs="EPSG:4326")
 
         # Update session state
@@ -201,7 +214,6 @@ if st.session_state.read_data:
                     true_count = temp_input_gdf[(temp_input_gdf[amenity_type] == test_type) & (temp_input_gdf['overlap'])].shape[0]
                     gdf.at[row_index, test_type] = true_count
 
-            gdf[unique_identifier] = gdf.index
             df_list.append(gdf.drop(columns=[key, latitude_column, longitude_column]))
 
             # Update last isochrone geometry to the last row's geometry in the current gdf
@@ -236,7 +248,12 @@ if st.session_state.read_data:
                 overlapping_points,
                 center
             )
+
             folium_static(m)  # Use folium_static to display in Streamlit
+
+            # Show caption
+            st.caption("An example of an isochrone analysed along with its corresponding amenities")
+
 
 # Reset session state flag
 if 'reset' not in st.session_state:

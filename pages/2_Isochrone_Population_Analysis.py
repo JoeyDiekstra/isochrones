@@ -21,9 +21,7 @@ st.title("Isochrone Population Analysis")
 st.markdown("""
 This application calculates the population, segmented by age group, for each isochrone generated in the previous step.
 
-Choose between:
-- **PC4**: Faster but less accurate.
-- **PC6**: Slower but more precise.
+Currently, the application only works with **CBS PC4 data** from 2022 and 2023. Including PC6 data is being worked on.
 """)
 
 # ---------------------------------------------------------------------------
@@ -73,7 +71,7 @@ if 'data_read' not in st.session_state:
 
 # File uploader prompt for general GeoDataFrames
 uploaded_files = st.file_uploader(
-    "Upload the GPKG file(s) here",
+    "Upload the GPKG file(s) generated in step 1 here:",
     type=["gpkg"],
     accept_multiple_files=True
 )
@@ -106,7 +104,7 @@ if uploaded_files:
 
 # Prompt for CBS PC4 or PC6 file
 cbs_file = st.file_uploader(
-    "Upload the CBS PC4 or PC6 GPKG file",
+    "Upload the CBS PC4 GPKG file here",
     type=["gpkg"]
 )
 

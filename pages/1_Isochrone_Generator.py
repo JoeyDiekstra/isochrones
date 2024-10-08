@@ -278,8 +278,18 @@ def clear_session_state():
 # ## Generate data
 # ## -------------------------------------------------------------------------------------------------------------------------------------
 
-# Allow the user to upload an .env file
-uploaded_env_file = st.file_uploader("Upload a .env file that contains the TravelTime API credentials", type=["env"])
+# Display the .env file format requirements
+st.markdown("""
+The .env file format must be:
+- `X_APPLICATION_ID='<YOUR_APPLICATION_ID>'`
+- `X_API_KEY='<YOUR_API_KEY>'`
+""")
+
+# Allow the user to upload a .env file
+uploaded_env_file = st.file_uploader(
+    "Upload a .env file that contains the TravelTime API credentials.", 
+    type=["env"]
+)
 
 if uploaded_env_file is not None:
     try:
@@ -333,6 +343,16 @@ longitude_column = st.text_input("Enter the longitude column name")
 
 unique_identifier = st.text_input("Enter the unique identifier column name (e.g., uid)")
 
+
+# Rename the columns in input_df once input_df is defined
+if uploaded_file:
+    input_df.rename(columns={
+        latitude_column: 'latitude',
+        longitude_column: 'longitude',
+        unique_identifier: 'uid'
+    }, inplace=True)
+
+
 if st.button('Generate Isochrones') and not st.session_state.process_started:
     st.session_state.process_started = True
     
@@ -347,17 +367,26 @@ if st.button('Generate Isochrones') and not st.session_state.process_started:
         df=input_df,
         travel_times=travel_times,
         transport_type=transport_type,
-        lat_col=latitude_column.strip(),
-        lon_col=longitude_column.strip(),
-        id_col=unique_identifier.strip()
+        lat_col='latitude',
+        lon_col='longitude',
+        id_col='uid'
     )
 
-    # Plot the isochrones
+    # Plot the isochrones on a map
     display_isochrone_map(geo_dfs)  
     
+    # Save the generated isochrone data into the session state for later use
     st.session_state.geo_dfs = geo_dfs
+    
+    # Inform the user that the isochrones have been successfully generated
     st.success("Isochrones generated successfully.")
-
+    
+    # Reset the 'process_started' state to False, signaling that the current process is complete
+    st.session_state.process_started = False
+    
+    # Reset the 'output_dir_set' state to False, indicating that the output directory needs to be set again
+    st.session_state.output_dir_set = False
+   
 
 # Step 2: Provide a download option for the generated output
 if st.session_state.geo_dfs and not st.session_state.output_dir_set:
