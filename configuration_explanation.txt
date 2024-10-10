@@ -1,14 +1,18 @@
-# Step 1: Install Conda (only if not already installed)
+# Step 1: Install Conda and Python (only if not already installed)
 
-# Step 2: Get the environment.yml file and navigate to its directory
+# Step 2: Open Anaconda Powershell prompt
+
+# Step 3: Get the environment.yml file and navigate to its directory
 cd /path/to/environment/yml/file
 
-# Step 3: Create the environment
+Example: cd O:\Rotterdam Office\Analytics Tools\Catchment Analyses\isochrones - streamlit app
+
+# Step 4: Create the environment
 conda env create -f environment.yml
 
-# Step 4: Activate the environment
+# Step 5: Activate the environment
 conda activate isochrone_env
 
-# Step 5: Navigate to the Streamlit script's directory and run the app
+# Step 6: Navigate to the Streamlit script's directory and run the app
 cd /path/to/streamlit/script
 streamlit run Home.py

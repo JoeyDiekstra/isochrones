@@ -17,14 +17,22 @@ import streamlit as st
 # ---------------------------------------------------------------------------
 # Introduce page
 # ---------------------------------------------------------------------------
-
 # Title and Description
 st.title("Isochrone Population Analysis")
-st.markdown("""
-This application calculates the population, segmented by age group, for each isochrone generated in the previous step.
 
-Currently, the application only works with **CBS PC4 data** from 2022 and 2023. Including PC6 data is being worked on.
+st.markdown("""
+This tool calculates demographic and property data for each generated isochrone:
+
+- **Population by Age Group**: Distribution of age groups
+- **Average Property Value**: Real estate market insights
+- **Average Household Size**: Typical household size
+- **Owner-Occupied Houses**: Percentage reflecting housing stability
+- **Dutch Origin Population**: Demographic composition by Dutch background
+- **Urbanity Score**: Level of urbanity in the area
+
+> **Note:** Supports only **CBS PC4 data** from 2022 and 2023. **PC6 data** integration is in development.
 """)
+
 
 # ---------------------------------------------------------------------------
 # Define functions
