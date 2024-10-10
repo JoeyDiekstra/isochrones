@@ -23,12 +23,12 @@ st.title("Isochrone Population Analysis")
 st.markdown("""
 This tool calculates demographic and property data for each generated isochrone:
 
-- **Population by Age Group**: Distribution of age groups
-- **Average Property Value**: Real estate market insights
-- **Average Household Size**: Typical household size
-- **Owner-Occupied Houses**: Percentage reflecting housing stability
-- **Dutch Origin Population**: Demographic composition by Dutch background
-- **Urbanity Score**: Level of urbanity in the area
+- Population by Age Group
+- Average Property Value
+- Average Household Size
+- Owner-Occupied Houses
+- Dutch Origin Population
+- Urbanity Score
 
 > **Note:** Supports only **CBS PC4 data** from 2022 and 2023. **PC6 data** integration is in development.
 """)
