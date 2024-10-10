@@ -2,6 +2,8 @@
 ## Import packages
 ## -------------------------------------------------------------------------------------------------------------------------------------
 
+# Link to descriptions of CBS data: https://www.cbs.nl/nl-nl/longread/diversen/2024/statistische-gegevens-per-vierkant-en-postcode-2021-2022-2023/4-beschrijving-cijfers
+
 # Import packages
 import os
 import pandas as pd
@@ -210,6 +212,18 @@ if st.session_state.data_read and not st.session_state.data_downloaded and st.bu
     for age_group in age_groups.keys():
         cbs_geo_df[f'num_pop_calculated_{age_group}'] = 0.0
 
+    # Initialize additional columns
+    additional_columns = [
+        'avg_property_value',
+        'avg_household_size',
+        'share_owner_occupied_houses',
+        'share_population_dutch_origin',
+        'urbanity_score'
+    ]
+    
+    for col in additional_columns:
+        cbs_geo_df[col] = 0.0
+
     # Create a dictionary to store transport intervals
     transport_intervals = {}
     for key in gdf_names_dict.keys():
@@ -281,22 +295,60 @@ if st.session_state.data_read and not st.session_state.data_downloaded and st.bu
                     total_population_age_group = filtered_df[f'num_pop_calculated_{age_group}'].sum()
                     output_column_name = f'{transport_type}_0_{minutes}m_num_pop_calculated_{new_label}'
                     gdf.at[idx_df, output_column_name] = total_population_age_group
+
+                # Calculate additional metrics
+                filtered_df['corrected_num_of_households'] = filtered_df['overlap_percentage'] * filtered_df['aantal_part_huishoudens']
+                filtered_df['share_of_total_households'] = filtered_df['corrected_num_of_households'] / filtered_df['corrected_num_of_households'].sum()
+
+                filtered_df['corrected_num_of_houses'] = filtered_df['overlap_percentage'] * filtered_df['aantal_woningen']
+                filtered_df['share_of_total_houses'] = filtered_df['corrected_num_of_houses'] / filtered_df['corrected_num_of_houses'].sum()
+
+                filtered_df['corrected_population_size'] = filtered_df['overlap_percentage'] * filtered_df['aantal_inwoners']
+                filtered_df['share_of_population'] = filtered_df['corrected_population_size'] / filtered_df['corrected_population_size'].sum()
+
+                filtered_df['avg_property_value'] = filtered_df['gemiddelde_woz_waarde_woning'] * 1000
+                filtered_df['weighted_avg_property_value'] = filtered_df['avg_property_value'] * filtered_df['share_of_total_houses']
+                avg_property_value = int(filtered_df['weighted_avg_property_value'].sum())
+                
+                filtered_df['weighted_avg_household_size'] = filtered_df['share_of_total_households'] * filtered_df['gemiddelde_huishoudensgrootte']
+                avg_household_size = filtered_df['weighted_avg_household_size'].sum()
+
+                filtered_df['weighted_share_owner_occupied_houses'] = filtered_df['percentage_huurwoningen'] * filtered_df['share_of_total_houses']
+                share_owner_occupied_houses = int(filtered_df['weighted_share_owner_occupied_houses'].sum())
+
+                filtered_df['weighted_share_dutch_origin'] = filtered_df['percentage_geb_nederland_herkomst_nederland'] * filtered_df['share_of_population']
+                share_population_dutch_origin = int(filtered_df['weighted_share_dutch_origin'].sum())
+
+                filtered_df['weighted_urbanity_score'] = filtered_df['stedelijkheid'] * filtered_df['share_of_total_houses']
+                urbanity_score = filtered_df['weighted_urbanity_score'].sum()
+
+                # Assign the new columns for additional data
+                gdf.at[idx_df, f'{transport_type}_0_{minutes}_avg_property_value'] = avg_property_value
+                gdf.at[idx_df, f'{transport_type}_0_{minutes}_avg_household_size'] = avg_household_size
+                gdf.at[idx_df, f'{transport_type}_0_{minutes}_share_owner_occupied_houses'] = share_owner_occupied_houses
+                gdf.at[idx_df, f'{transport_type}_0_{minutes}_share_population_dutch_origin'] = share_population_dutch_origin
+                gdf.at[idx_df, f'{transport_type}_0_{minutes}_urbanity_score'] = urbanity_score
                 
                 pbar.update(1)
 
         gdf.geometry = original_geometry
         gdf['year'] = st.session_state.year  # Ensure year is included in each dataframe
-        output_columns = ['uid', 'year'] + [f'{transport_type}_0_{minutes}m_num_pop_calculated_{new_label}' for new_label in age_groups.values()]
+        output_columns = ['uid', 'year'] \
+            + [f'{transport_type}_0_{minutes}m_num_pop_calculated_{new_label}' for new_label in age_groups.values()] \
+            + [f'{transport_type}_0_{minutes}_{col}' for col in additional_columns]
         all_output_dfs.append(gdf[output_columns])
+
+
 
     # Combine all output DataFrames into a single final output DataFrame
     final_output_df = all_output_dfs[0]
     for df in all_output_dfs[1:]:
         final_output_df = final_output_df.merge(df, on=['uid', 'year'], how='left')
-
+    
     age_groups_list = list(age_groups.values())
+    
     final_output_dfs = {}
-
+    
     # Process final output DataFrame for each transport type and interval
     for transport_type, intervals in transport_intervals.items():
         for i, (start_minute, end_minute) in enumerate(intervals):
@@ -321,25 +373,35 @@ if st.session_state.data_read and not st.session_state.data_downloaded and st.bu
                         f"Check failed for {new_col_name}: "
                         f"{final_output_df[current_col_name].values[0]} - {final_output_df[prev_col_name].values[0]} != {final_output_df[new_col_name].values[0]}"
                     )
+    
+            # Include additional columns only for the intervals starting from 0
+            if start_minute == 0:
+                for col in additional_columns:
+                    col_name = f'{transport_type}_{start_minute}_{end_minute}_{col}'
+                    if col_name not in final_output_df.columns:
+                        col_0_name = f'{transport_type}_0_{end_minute}_{col}'
+                        final_output_df[col_name] = final_output_df.get(col_0_name, pd.Series([0]*len(final_output_df)))
+    
         final_output_dfs[transport_type] = final_output_df.copy()
-
+    
     # Ensure 'uid' is the first column and 'year' is the second column
     cols = final_output_df.columns.tolist()
     if 'uid' in cols and 'year' in cols:
         cols.insert(1, cols.pop(cols.index('year')))  # Make 'year' the second column
         final_output_df = final_output_df[cols]
-
+    
     # Convert DataFrame to CSV
     csv = final_output_df.to_csv(index=False)
-
+    
     calc_info.empty()  # Clear the "Calculating..." message
-
+    
     # Show the final output
     st.write("Final combined output:")
     st.write(final_output_df)
-
+    
     # Clear progress info message and progress bar
     st.success(f"Population per isochrone calculated successfully in {time.time() - start_time:.2f} seconds.")
+    
 
     def clear_session_state():
         st.session_state.data_downloaded = True  # Set the flag when the download button is clicked

@@ -280,9 +280,11 @@ def clear_session_state():
 
 # Display the .env file format requirements
 st.markdown("""
-The .env file format must be:
-- `X_APPLICATION_ID='<YOUR_APPLICATION_ID>'`
-- `X_API_KEY='<YOUR_API_KEY>'`
+The .env file must contain:
+\n`X_APPLICATION_ID='<YOUR_APPLICATION_ID>'`
+\n`X_API_KEY='<YOUR_API_KEY>'`
+
+\nAPI keys can be requested via: https://docs.traveltime.com/api/overview/isochrones 
 """)
 
 # Allow the user to upload a .env file
