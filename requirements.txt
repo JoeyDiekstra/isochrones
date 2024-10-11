@@ -13,4 +13,4 @@
   - fiona
   - pyproj==latest_version
   - rtree==latest_version
-  - xlsxwriter
+  - XlsxWriter
