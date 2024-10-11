@@ -390,6 +390,49 @@ if st.button('Generate Isochrones') and not st.session_state.process_started:
     st.session_state.output_dir_set = False
    
 
+# # Step 2: Provide a download option for the generated output
+# if st.session_state.geo_dfs and not st.session_state.output_dir_set:
+#     try:
+#         current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+#         zip_buffer = BytesIO()  # Create an in-memory buffer for the ZIP file
+
+#         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+#             for key, gdf in st.session_state.geo_dfs.items():
+#                 # Prepare each GeoPackage file in memory
+#                 gpkg_filename = f"{current_datetime}_{key}_output.gpkg"
+#                 with BytesIO() as file_buffer:
+#                     gdf.to_file(file_buffer, layer=key, driver='GPKG')
+#                     file_buffer.seek(0)
+#                     zf.writestr(gpkg_filename, file_buffer.read())  # Write to ZIP
+
+#         zip_buffer.seek(0)
+
+#         # Offer the ZIP file for download
+#         st.download_button(
+#             label="Download GeoPackages",
+#             data=zip_buffer,
+#             file_name=f'isochrones_{current_datetime}.zip',
+#             mime='application/zip',
+#             on_click=clear_session_state  # Callback function to clear session state
+#         )
+        
+#         # st.success("All GeoPackages have been prepared for download.")
+#         st.session_state.output_dir_set = True
+
+#     except Exception as e:
+#         st.error(f"An error occurred while creating the download package: {e}")
+
+# # Initialize session state variables if they don't exist
+# if 'output_dir_set' not in st.session_state:
+#     st.session_state.output_dir_set = False
+
+import zipfile
+from io import BytesIO
+from datetime import datetime
+import geopandas as gpd
+import fiona
+import streamlit as st  # Assuming you're using Streamlit
+
 # Step 2: Provide a download option for the generated output
 if st.session_state.geo_dfs and not st.session_state.output_dir_set:
     try:
@@ -400,8 +443,18 @@ if st.session_state.geo_dfs and not st.session_state.output_dir_set:
             for key, gdf in st.session_state.geo_dfs.items():
                 # Prepare each GeoPackage file in memory
                 gpkg_filename = f"{current_datetime}_{key}_output.gpkg"
+                
+                # Use BytesIO to store the GPKG temporarily
                 with BytesIO() as file_buffer:
-                    gdf.to_file(file_buffer, layer=key, driver='GPKG')
+                    with fiona.io.MemoryFile() as memfile:
+                        with memfile.open(driver='GPKG', schema=gdf.schema, crs=gdf.crs, layer=key) as mem:
+                            for _, row in gdf.iterrows():
+                                mem.write(row)
+                        
+                        # Write the contents of memfile to file_buffer
+                        file_buffer.write(memfile.read())
+                    
+                    # After writing, reset the file buffer and add it to the ZIP
                     file_buffer.seek(0)
                     zf.writestr(gpkg_filename, file_buffer.read())  # Write to ZIP
 
@@ -413,10 +466,10 @@ if st.session_state.geo_dfs and not st.session_state.output_dir_set:
             data=zip_buffer,
             file_name=f'isochrones_{current_datetime}.zip',
             mime='application/zip',
-            on_click=clear_session_state  # Callback function to clear session state
+            on_click=lambda: setattr(st.session_state, 'output_dir_set', False)  # Reset session state
         )
         
-        # st.success("All GeoPackages have been prepared for download.")
+        # Set the session state flag
         st.session_state.output_dir_set = True
 
     except Exception as e:
