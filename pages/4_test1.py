@@ -433,6 +433,8 @@ if st.button('Generate Isochrones') and not st.session_state.process_started:
 # import pandas as pd
 
 # # Assuming you have already imported necessary modules such as geopandas
+import geopandas as gpd
+from shapely import wkt
 
 # Step 2: Provide a download option for the generated output
 if st.session_state.geo_dfs and not st.session_state.output_dir_set:
@@ -442,6 +444,12 @@ if st.session_state.geo_dfs and not st.session_state.output_dir_set:
 
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
             for key, gdf in st.session_state.geo_dfs.items():
+                
+                # Ensure all geometries are indeed geometry objects
+                if isinstance(gdf, pd.DataFrame) and 'geometry' in gdf.columns:
+                    if isinstance(gdf['geometry'].iloc[0], str):
+                        gdf['geometry'] = gdf['geometry'].apply(wkt.loads)
+                
                 # Convert geometry to WKT and drop original geometry column
                 gdf['geometry'] = gdf['geometry'].apply(lambda geom: geom.wkt if geom else None)
                 
