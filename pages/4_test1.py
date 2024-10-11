@@ -18,6 +18,7 @@ from io import BytesIO
 import folium
 from streamlit_folium import folium_static
 import pyogrio
+import libpoppler
 
 ## -------------------------------------------------------------------------------------------------------------------------------------
 ## Read data
@@ -391,41 +392,85 @@ if st.button('Generate Isochrones') and not st.session_state.process_started:
     st.session_state.output_dir_set = False
    
 
+# # Step 2: Provide a download option for the generated output
+# if st.session_state.geo_dfs and not st.session_state.output_dir_set:
+#     try:
+#         current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+#         zip_buffer = BytesIO()  # Create an in-memory buffer for the ZIP file
+
+#         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+#             for key, gdf in st.session_state.geo_dfs.items():
+#                 # Prepare each GeoPackage file in memory
+#                 gpkg_filename = f"{current_datetime}_{key}_output.gpkg"
+#                 with BytesIO() as file_buffer:
+#                     gdf.to_file(file_buffer, layer=key, driver='GPKG')
+#                     file_buffer.seek(0)
+#                     zf.writestr(gpkg_filename, file_buffer.read())  # Write to ZIP
+
+#         zip_buffer.seek(0)
+
+#         # Offer the ZIP file for download
+#         st.download_button(
+#             label="Download GeoPackages",
+#             data=zip_buffer,
+#             file_name=f'isochrones_{current_datetime}.zip',
+#             mime='application/zip',
+#             on_click=clear_session_state  # Callback function to clear session state
+#         )
+        
+#         # st.success("All GeoPackages have been prepared for download.")
+#         st.session_state.output_dir_set = True
+
+#     except Exception as e:
+#         st.error(f"An error occurred while creating the download package: {e}")
+
+# # Initialize session state variables if they don't exist
+# if 'output_dir_set' not in st.session_state:
+#     st.session_state.output_dir_set = False
+
+
+import streamlit as st
+from io import BytesIO
+from datetime import datetime
+import pandas as pd
+from shapely.wkt import dumps
+
 # Step 2: Provide a download option for the generated output
 if st.session_state.geo_dfs and not st.session_state.output_dir_set:
     try:
         current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
-        zip_buffer = BytesIO()  # Create an in-memory buffer for the ZIP file
+        excel_buffer = BytesIO()  # Create an in-memory buffer for the Excel file
 
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
             for key, gdf in st.session_state.geo_dfs.items():
-                # Prepare each GeoPackage file in memory
-                gpkg_filename = f"{current_datetime}_{key}_output.gpkg"
-                with BytesIO() as file_buffer:
-                    gdf.to_file(file_buffer, layer=key, driver='GPKG')
-                    file_buffer.seek(0)
-                    zf.writestr(gpkg_filename, file_buffer.read())  # Write to ZIP
-
-        zip_buffer.seek(0)
-
-        # Offer the ZIP file for download
+                # Convert geometry to WKT
+                gdf['geometry_wkt'] = gdf['geometry'].apply(dumps)
+                
+                # Drop the original geometry column
+                df = gdf.drop(columns='geometry')
+                
+                # Write each dataframe to a separate sheet in the Excel workbook
+                # sheet_name = f"{current_datetime}_{key}_output"
+                df.to_excel(writer, index=False)
+        
+        excel_buffer.seek(0)
+        
+        # Offer the Excel file for download
         st.download_button(
-            label="Download GeoPackages",
-            data=zip_buffer,
-            file_name=f'isochrones_{current_datetime}.zip',
-            mime='application/zip',
+            label="Download Excel",
+            data=excel_buffer,
+            file_name=f'isochrones_{current_datetime}.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             on_click=clear_session_state  # Callback function to clear session state
         )
         
-        # st.success("All GeoPackages have been prepared for download.")
+        # st.success("All data frames have been prepared for download.")
         st.session_state.output_dir_set = True
-
     except Exception as e:
         st.error(f"An error occurred while creating the download package: {e}")
 
 # Initialize session state variables if they don't exist
 if 'output_dir_set' not in st.session_state:
     st.session_state.output_dir_set = False
-
 
 
