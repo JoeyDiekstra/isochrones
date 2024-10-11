@@ -153,15 +153,15 @@ if st.button('Read Data') and uploaded_files and uploaded_excel_file and all([la
         from shapely import wkt
         import logging
 
-        def safe_wkt_loads(geom):
-            try:
-                # Attempt to load WKT
-                return wkt.loads(geom)
-            except Exception as e:
-                # Log detailed information for debugging
-                logging.error(f"Failed to parse WKT: {geom[:100]}... Error: {e}")
-                # You can choose to return None or handle it differently
-                return None
+        # def safe_wkt_loads(geom):
+        #     try:
+        #         # Attempt to load WKT
+        #         return wkt.loads(geom)
+        #     except Exception as e:
+        #         # Log detailed information for debugging
+        #         logging.error(f"Failed to parse WKT: {geom[:100]}... Error: {e}")
+        #         # You can choose to return None or handle it differently
+        #         return None
 
         
         # Assuming uploaded_files is a list of uploaded XLSX files.
@@ -174,7 +174,7 @@ if st.button('Read Data') and uploaded_files and uploaded_excel_file and all([la
         
             if 'geometry' in df.columns:
                 # Convert the 'geometry' column from WKT strings to actual geometries
-                df['geometry'] = df['geometry'].apply(safe_wkt_loads)
+                df['geometry'] = df['geometry'].apply(wkt.loads)
                 
                 # Convert the DataFrame to a GeoDataFrame
                 gdf = gpd.GeoDataFrame(df, geometry='geometry')
