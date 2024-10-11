@@ -17,7 +17,6 @@ import zipfile
 from io import BytesIO
 import folium
 from streamlit_folium import folium_static
-import pyogrio
 
 ## -------------------------------------------------------------------------------------------------------------------------------------
 ## Read data
