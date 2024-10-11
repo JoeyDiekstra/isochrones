@@ -16,9 +16,9 @@ from folium.plugins import MarkerCluster
 from streamlit_folium import folium_static
 
 
-os.chdir(r"C:\Users\Joey.Diekstra\OneDrive - OC&C Strategy Consultants\Personal\python\location_analytics\output")
+# os.chdir(r"C:\Users\Joey.Diekstra\OneDrive - OC&C Strategy Consultants\Personal\python\location_analytics\output")
 
-df = pd.read_excel("20241011_121427_cycling_12_minutes_output.xlsx")
+# df = pd.read_excel("20241011_121427_cycling_12_minutes_output.xlsx")
 
 # ---------------------------------------------------------------------------
 # Introduce page
