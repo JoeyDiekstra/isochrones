@@ -390,41 +390,79 @@ if st.button('Generate Isochrones') and not st.session_state.process_started:
     st.session_state.output_dir_set = False
    
 
+# # Step 2: Provide a download option for the generated output
+# if st.session_state.geo_dfs and not st.session_state.output_dir_set:
+#     try:
+#         current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+#         zip_buffer = BytesIO()  # Create an in-memory buffer for the ZIP file
+
+#         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+#             for key, gdf in st.session_state.geo_dfs.items():
+#                 # Prepare each GeoPackage file in memory
+#                 gpkg_filename = f"{current_datetime}_{key}_output.gpkg"
+#                 with BytesIO() as file_buffer:
+#                     gdf.to_file(file_buffer, layer=key, driver='GPKG')
+#                     file_buffer.seek(0)
+#                     zf.writestr(gpkg_filename, file_buffer.read())  # Write to ZIP
+
+#         zip_buffer.seek(0)
+
+#         # Offer the ZIP file for download
+#         st.download_button(
+#             label="Download GeoPackages",
+#             data=zip_buffer,
+#             file_name=f'isochrones_{current_datetime}.zip',
+#             mime='application/zip',
+#             on_click=clear_session_state  # Callback function to clear session state
+#         )
+        
+#         # st.success("All GeoPackages have been prepared for download.")
+#         st.session_state.output_dir_set = True
+
+#     except Exception as e:
+#         st.error(f"An error occurred while creating the download package: {e}")
+
+# # Initialize session state variables if they don't exist
+# if 'output_dir_set' not in st.session_state:
+#     st.session_state.output_dir_set = False
+
 # Step 2: Provide a download option for the generated output
 if st.session_state.geo_dfs and not st.session_state.output_dir_set:
     try:
         current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
         zip_buffer = BytesIO()  # Create an in-memory buffer for the ZIP file
-
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
             for key, gdf in st.session_state.geo_dfs.items():
-                # Prepare each GeoPackage file in memory
-                gpkg_filename = f"{current_datetime}_{key}_output.gpkg"
-                with BytesIO() as file_buffer:
-                    gdf.to_file(file_buffer, layer=key, driver='GPKG')
-                    file_buffer.seek(0)
-                    zf.writestr(gpkg_filename, file_buffer.read())  # Write to ZIP
-
+                # Prepare each Shapefile in memory
+                shp_base_name = f"{current_datetime}_{key}_output"
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    # Write the shapefile components to a temporary directory
+                    gdf.to_file(filename=f"{tmpdir}/{shp_base_name}.shp", driver='ESRI Shapefile')
+                    
+                    # Add all related shapefile components to the ZIP (i.e., .shp, .shx, .dbf, .prj)
+                    for extension in ['shp', 'shx', 'dbf', 'prj']:
+                        component_path = f"{tmpdir}/{shp_base_name}.{extension}"
+                        with open(component_path, 'rb') as file:
+                            zf.writestr(f"{shp_base_name}.{extension}", file.read())  # Write to ZIP
+        
         zip_buffer.seek(0)
-
+        
         # Offer the ZIP file for download
         st.download_button(
-            label="Download GeoPackages",
+            label="Download Shapefiles",
             data=zip_buffer,
             file_name=f'isochrones_{current_datetime}.zip',
             mime='application/zip',
             on_click=clear_session_state  # Callback function to clear session state
         )
         
-        # st.success("All GeoPackages have been prepared for download.")
+        # st.success("All Shapefiles have been prepared for download.")
         st.session_state.output_dir_set = True
-
     except Exception as e:
         st.error(f"An error occurred while creating the download package: {e}")
 
 # Initialize session state variables if they don't exist
 if 'output_dir_set' not in st.session_state:
     st.session_state.output_dir_set = False
-
 
 
