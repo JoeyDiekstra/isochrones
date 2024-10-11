@@ -456,20 +456,19 @@ if st.session_state.geo_dfs and not st.session_state.output_dir_set:
                 # Convert geometry to WKT and drop original geometry column
                 gdf['geometry'] = gdf['geometry'].apply(lambda geom: geom.wkt if geom else None)
                 
-                # Prepare each Excel file in memory using openpyxl
-                xlsx_filename = f"{current_datetime}_{key}_output.xlsx"
+                # Prepare each CSV file in memory
+                csv_filename = f"{current_datetime}_{key}_output.csv"
                 with BytesIO() as file_buffer:
-                    with pd.ExcelWriter(file_buffer, engine='openpyxl') as writer:
-                        gdf.to_excel(writer, index=False, sheet_name=key)
+                    gdf.to_csv(file_buffer, index=False)  # Write DataFrame to CSV
                     
                     file_buffer.seek(0)
-                    zf.writestr(xlsx_filename, file_buffer.read())  # Write to ZIP
+                    zf.writestr(csv_filename, file_buffer.read())  # Write to ZIP
 
         zip_buffer.seek(0)
 
         # Offer the ZIP file for download
         st.download_button(
-            label="Download Excel Files",
+            label="Download CSV Files",
             data=zip_buffer,
             file_name=f'isochrones_{current_datetime}.zip',
             mime='application/zip',
@@ -482,3 +481,6 @@ if st.session_state.geo_dfs and not st.session_state.output_dir_set:
 # Initialize session state variables if they don't exist
 if 'output_dir_set' not in st.session_state:
     st.session_state.output_dir_set = False
+
+
+

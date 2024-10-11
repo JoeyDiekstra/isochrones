@@ -16,9 +16,9 @@ from folium.plugins import MarkerCluster
 from streamlit_folium import folium_static
 
 
-# os.chdir(r"C:\Users\Joey.Diekstra\OneDrive - OC&C Strategy Consultants\Personal\python\location_analytics\output")
+os.chdir(r"C:\Users\Joey.Diekstra\OneDrive - OC&C Strategy Consultants\Personal\python\location_analytics\output")
 
-# df = pd.read_excel("20241011_133600_walking_2_minutes_output.xlsx")
+df = pd.read_excel("20241011_121427_cycling_12_minutes_output.xlsx")
 
 # ---------------------------------------------------------------------------
 # Introduce page
@@ -114,8 +114,8 @@ if 'calculate_amenities' not in st.session_state:
 
 # Step 1: Upload Data Files and Enter Input Fields
 uploaded_files = st.file_uploader(
-    "Upload the XLSX file(s) generated in step 1 here:",
-    type=["xlsx"],
+    "Upload the CSV file(s) generated in step 1 here:",
+    type=["csv"],
     accept_multiple_files=True
 )
 
@@ -170,7 +170,7 @@ if st.button('Read Data') and uploaded_files and uploaded_excel_file and all([la
             new_file_name = generate_and_validate_filename(uploaded_file.name)
             
             # Read the Excel file into a Pandas DataFrame
-            df = pd.read_excel(uploaded_file)
+            df = pd.read_csv(uploaded_file)
         
             if 'geometry' in df.columns:
                 # Convert the 'geometry' column from WKT strings to actual geometries
