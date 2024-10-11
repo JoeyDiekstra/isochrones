@@ -13,16 +13,13 @@ from shapely.geometry import Polygon, MultiPolygon
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime, timedelta
 import folium
-import zipfile
 from io import BytesIO
-import folium
 from streamlit_folium import folium_static
+import zipfile
 
 ## -------------------------------------------------------------------------------------------------------------------------------------
 ## Read data
 ## -------------------------------------------------------------------------------------------------------------------------------------
-
-# os.chdir(r"C:\Users\Joey.Diekstra\OneDrive - OC&C Strategy Consultants\Personal\python\location_analytics\data") # Example
 
 # Title and Description
 st.title("Isochrone Generator")
@@ -398,27 +395,34 @@ if st.session_state.geo_dfs and not st.session_state.output_dir_set:
 
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
             for key, gdf in st.session_state.geo_dfs.items():
-                # Prepare each GeoPackage file in memory
-                gpkg_filename = f"{current_datetime}_{key}_output.gpkg"
+                
+                # Ensure all geometries are indeed geometry objects
+                if isinstance(gdf, pd.DataFrame) and 'geometry' in gdf.columns:
+                    if isinstance(gdf['geometry'].iloc[0], str):
+                        gdf['geometry'] = gdf['geometry'].apply(wkt.loads)
+                
+                # Convert geometry to WKT and drop original geometry column
+                gdf['geometry'] = gdf['geometry'].apply(lambda geom: geom.wkt if geom else None)
+                
+                # Prepare each CSV file in memory
+                csv_filename = f"{current_datetime}_{key}_output.csv"
                 with BytesIO() as file_buffer:
-                    gdf.to_file(file_buffer, layer=key, driver='GPKG')
+                    gdf.to_csv(file_buffer, index=False)  # Write DataFrame to CSV
+                    
                     file_buffer.seek(0)
-                    zf.writestr(gpkg_filename, file_buffer.read())  # Write to ZIP
+                    zf.writestr(csv_filename, file_buffer.read())  # Write to ZIP
 
         zip_buffer.seek(0)
 
         # Offer the ZIP file for download
         st.download_button(
-            label="Download GeoPackages",
+            label="Download CSV Files",
             data=zip_buffer,
             file_name=f'isochrones_{current_datetime}.zip',
             mime='application/zip',
-            on_click=clear_session_state  # Callback function to clear session state
+            on_click=lambda: setattr(st.session_state, 'output_dir_set', True)  # Set flag to True
         )
         
-        # st.success("All GeoPackages have been prepared for download.")
-        st.session_state.output_dir_set = True
-
     except Exception as e:
         st.error(f"An error occurred while creating the download package: {e}")
 

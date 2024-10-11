@@ -390,55 +390,6 @@ if st.button('Generate Isochrones') and not st.session_state.process_started:
     st.session_state.output_dir_set = False
    
 
-# # Step 2: Provide a download option for the generated output
-# if st.session_state.geo_dfs and not st.session_state.output_dir_set:
-#     try:
-#         current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
-#         zip_buffer = BytesIO()  # Create an in-memory buffer for the ZIP file
-
-#         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
-#             for key, gdf in st.session_state.geo_dfs.items():
-#                 # Prepare each GeoPackage file in memory
-#                 gpkg_filename = f"{current_datetime}_{key}_output.gpkg"
-#                 with BytesIO() as file_buffer:
-#                     gdf.to_file(file_buffer, layer=key, driver='GPKG')
-#                     file_buffer.seek(0)
-#                     zf.writestr(gpkg_filename, file_buffer.read())  # Write to ZIP
-
-#         zip_buffer.seek(0)
-
-#         # Offer the ZIP file for download
-#         st.download_button(
-#             label="Download GeoPackages",
-#             data=zip_buffer,
-#             file_name=f'isochrones_{current_datetime}.zip',
-#             mime='application/zip',
-#             on_click=clear_session_state  # Callback function to clear session state
-#         )
-        
-#         # st.success("All GeoPackages have been prepared for download.")
-#         st.session_state.output_dir_set = True
-
-#     except Exception as e:
-#         st.error(f"An error occurred while creating the download package: {e}")
-
-# # Initialize session state variables if they don't exist
-# if 'output_dir_set' not in st.session_state:
-#     st.session_state.output_dir_set = False
-
-# import streamlit as st
-# from datetime import datetime
-# import zipfile
-# from io import BytesIO
-# import pandas as pd
-
-import pandas as pd
-import zipfile
-from io import BytesIO
-from datetime import datetime
-import streamlit as st
-from shapely import wkt
-
 # Step 2: Provide a download option for the generated output
 if st.session_state.geo_dfs and not st.session_state.output_dir_set:
     try:
@@ -447,34 +398,27 @@ if st.session_state.geo_dfs and not st.session_state.output_dir_set:
 
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
             for key, gdf in st.session_state.geo_dfs.items():
-                
-                # Ensure all geometries are indeed geometry objects
-                if isinstance(gdf, pd.DataFrame) and 'geometry' in gdf.columns:
-                    if isinstance(gdf['geometry'].iloc[0], str):
-                        gdf['geometry'] = gdf['geometry'].apply(wkt.loads)
-                
-                # Convert geometry to WKT and drop original geometry column
-                gdf['geometry'] = gdf['geometry'].apply(lambda geom: geom.wkt if geom else None)
-                
-                # Prepare each CSV file in memory
-                csv_filename = f"{current_datetime}_{key}_output.csv"
+                # Prepare each GeoPackage file in memory
+                gpkg_filename = f"{current_datetime}_{key}_output.gpkg"
                 with BytesIO() as file_buffer:
-                    gdf.to_csv(file_buffer, index=False)  # Write DataFrame to CSV
-                    
+                    gdf.to_file(file_buffer, layer=key, driver='GPKG')
                     file_buffer.seek(0)
-                    zf.writestr(csv_filename, file_buffer.read())  # Write to ZIP
+                    zf.writestr(gpkg_filename, file_buffer.read())  # Write to ZIP
 
         zip_buffer.seek(0)
 
         # Offer the ZIP file for download
         st.download_button(
-            label="Download CSV Files",
+            label="Download GeoPackages",
             data=zip_buffer,
             file_name=f'isochrones_{current_datetime}.zip',
             mime='application/zip',
-            on_click=lambda: setattr(st.session_state, 'output_dir_set', True)  # Set flag to True
+            on_click=clear_session_state  # Callback function to clear session state
         )
         
+        # st.success("All GeoPackages have been prepared for download.")
+        st.session_state.output_dir_set = True
+
     except Exception as e:
         st.error(f"An error occurred while creating the download package: {e}")
 

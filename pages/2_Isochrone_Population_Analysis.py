@@ -13,6 +13,8 @@ from tqdm import tqdm
 from datetime import datetime
 import re
 import streamlit as st
+from shapely import wkt
+from shapely.geometry import MultiPolygon
 
 # ---------------------------------------------------------------------------
 # Introduce page
@@ -21,7 +23,7 @@ import streamlit as st
 st.title("Isochrone Population Analysis")
 
 st.markdown("""
-This tool calculates demographic and property data for each generated isochrone:
+This involves calculating demographic and property data for each generated isochrone:
 
 - Population by Age Group
 - Average Property Value
@@ -79,10 +81,10 @@ if 'year' not in st.session_state:
 if 'data_read' not in st.session_state:
     st.session_state.data_read = False
 
-# File uploader prompt for general GeoDataFrames
+# Step 1: Upload Data Files and Enter Input Fields
 uploaded_files = st.file_uploader(
-    "Upload the GPKG file(s) generated in step 1 here:",
-    type=["gpkg"],
+    "Upload the CSV file(s) generated in step 1 here:",
+    type=["csv"],
     accept_multiple_files=True
 )
 
@@ -90,32 +92,47 @@ geo_dfs = {}
 gdf_names_dict = {}
 
 if uploaded_files:
-    for uploaded_file in uploaded_files:
+    def process_uploaded_file(uploaded_file):
         try:
+            # Generate a valid filename
             new_file_name = generate_and_validate_filename(uploaded_file.name)
-            gdf = gpd.read_file(uploaded_file)
+            
+            # Read the uploaded file into a DataFrame
+            df = pd.read_csv(uploaded_file)
 
-            if 'geometry' in gdf.columns:
-                gdf = gdf.rename(columns={'geometry': new_file_name})
-                gdf = gdf.set_geometry(new_file_name)
+            # Check if 'geometry' column exists and convert it if necessary
+            if 'geometry' in df.columns:
+                df['geometry'] = df['geometry'].apply(wkt.loads)
+                gdf = gpd.GeoDataFrame(df, geometry='geometry')
+                gdf.rename(columns={'geometry': new_file_name}, inplace=True)
+                gdf.set_geometry(new_file_name, inplace=True)
+                gdf.set_crs('EPSG:4326', inplace=True)
 
+            # Validate geometry and transform CRS
             if new_file_name not in gdf.columns or not gpd.GeoSeries(gdf[new_file_name]).is_valid.all():
-                raise ValueError(f"The geometry column '{new_file_name}' is not valid in the file '{uploaded_file.name}'.")
-
+                raise ValueError(f"Invalid geometry in column '{new_file_name}' in file '{uploaded_file.name}'.")
+            
+            # Convert to the desired Coordinate Reference System
             gdf.to_crs('EPSG:28992', inplace=True)
-                
+
+            # Store the GeoDataFrame
             geo_dfs[new_file_name] = gdf
             gdf_names_dict[new_file_name] = uploaded_file.name
-            
+
         except Exception as e:
             st.error(f'Error processing file "{uploaded_file.name}": {e}')
+    
+    # Process each uploaded file
+    for file in uploaded_files:
+        process_uploaded_file(file)
 
+    # Notify the user of successful import
     st.success("Files imported successfully")
 
 # Prompt for CBS PC4 or PC6 file
 cbs_file = st.file_uploader(
-    "Upload the CBS PC4 GPKG file here",
-    type=["gpkg"]
+    "Upload the CBS PC4 CSV file here",
+    type=["csv"]
 )
 
 # Input for year using a text field to start empty
@@ -137,7 +154,17 @@ if st.button("Read data"):
             if not 2000 <= year_as_int <= current_year:
                 raise ValueError(f"Year must be between 2000 and {current_year}")
 
-            cbs_geo_df = gpd.read_file(cbs_file)
+            # Read the CSV file
+            cbs_df = pd.read_csv(cbs_file)
+
+            # Convert the 'geometry' column from WKT to geometric objects
+            cbs_df['geometry'] = cbs_df['geometry'].apply(wkt.loads)
+
+            # Create a GeoDataFrame
+            cbs_geo_df = gpd.GeoDataFrame(cbs_df, geometry='geometry')
+
+            cbs_geo_df.set_crs('EPSG:28992', inplace=True)
+
             cbs_geo_df['year'] = year_as_int
             
 
