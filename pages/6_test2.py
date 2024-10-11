@@ -13,6 +13,8 @@ from tqdm import tqdm
 from datetime import datetime
 import re
 import streamlit as st
+from shapely import wkt
+from shapely.geometry import MultiPolygon
 
 # ---------------------------------------------------------------------------
 # Introduce page
@@ -79,10 +81,10 @@ if 'year' not in st.session_state:
 if 'data_read' not in st.session_state:
     st.session_state.data_read = False
 
-# File uploader prompt for general GeoDataFrames
+# Step 1: Upload Data Files and Enter Input Fields
 uploaded_files = st.file_uploader(
-    "Upload the GPKG file(s) generated in step 1 here:",
-    type=["gpkg"],
+    "Upload the CSV file(s) generated in step 1 here:",
+    type=["csv"],
     accept_multiple_files=True
 )
 
@@ -93,9 +95,17 @@ if uploaded_files:
     for uploaded_file in uploaded_files:
         try:
             new_file_name = generate_and_validate_filename(uploaded_file.name)
-            gdf = gpd.read_file(uploaded_file)
 
-            if 'geometry' in gdf.columns:
+            # Read the Excel file into a Pandas DataFrame
+            df = pd.read_csv(uploaded_file)
+
+            if 'geometry' in df.columns:
+                # Convert the 'geometry' column from WKT strings to actual geometries
+                df['geometry'] = df['geometry'].apply(wkt.loads)
+                
+                # Convert the DataFrame to a GeoDataFrame
+                gdf = gpd.GeoDataFrame(df, geometry='geometry')
+
                 gdf = gdf.rename(columns={'geometry': new_file_name})
                 gdf = gdf.set_geometry(new_file_name)
 
@@ -114,8 +124,8 @@ if uploaded_files:
 
 # Prompt for CBS PC4 or PC6 file
 cbs_file = st.file_uploader(
-    "Upload the CBS PC4 GPKG file here",
-    type=["gpkg"]
+    "Upload the CBS PC4 CSV file here",
+    type=["csv"]
 )
 
 # Input for year using a text field to start empty
@@ -137,7 +147,15 @@ if st.button("Read data"):
             if not 2000 <= year_as_int <= current_year:
                 raise ValueError(f"Year must be between 2000 and {current_year}")
 
-            cbs_geo_df = gpd.read_file(cbs_file)
+            # Read the CSV file
+            cbs_df = pd.read_csv(cbs_file)
+
+            # Convert the 'geometry' column from WKT to geometric objects
+            cbs_df['geometry'] = cbs_df['geometry'].apply(wkt.loads)
+
+            # Create a GeoDataFrame
+            cbs_geo_df = gpd.GeoDataFrame(cbs_df, geometry='geometry')
+
             cbs_geo_df['year'] = year_as_int
             
 

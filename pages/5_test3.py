@@ -9,11 +9,16 @@ import geopandas as gpd
 import time
 import streamlit as st
 import re
+from shapely import wkt
+from shapely.geometry import MultiPolygon
 
 # Mapping
 import folium
 from folium.plugins import MarkerCluster
 from streamlit_folium import folium_static
+
+
+
 
 
 # os.chdir(r"C:\Users\Joey.Diekstra\OneDrive - OC&C Strategy Consultants\Personal\python\location_analytics\output")
@@ -145,24 +150,6 @@ if st.button('Read Data') and uploaded_files and uploaded_excel_file and all([la
         # Read and validate GeoDataFrames
         geo_dfs = {}
         gdf_names_dict = {}
-
-        import geopandas as gpd
-        import pandas as pd
-        from shapely import wkt
-        from shapely.geometry import MultiPolygon
-        from shapely import wkt
-        import logging
-
-        # def safe_wkt_loads(geom):
-        #     try:
-        #         # Attempt to load WKT
-        #         return wkt.loads(geom)
-        #     except Exception as e:
-        #         # Log detailed information for debugging
-        #         logging.error(f"Failed to parse WKT: {geom[:100]}... Error: {e}")
-        #         # You can choose to return None or handle it differently
-        #         return None
-
         
         # Assuming uploaded_files is a list of uploaded XLSX files.
         
