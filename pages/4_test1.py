@@ -432,8 +432,11 @@ if st.button('Generate Isochrones') and not st.session_state.process_started:
 # from io import BytesIO
 # import pandas as pd
 
-# # Assuming you have already imported necessary modules such as geopandas
-import geopandas as gpd
+import pandas as pd
+import zipfile
+from io import BytesIO
+from datetime import datetime
+import streamlit as st
 from shapely import wkt
 
 # Step 2: Provide a download option for the generated output
@@ -453,10 +456,10 @@ if st.session_state.geo_dfs and not st.session_state.output_dir_set:
                 # Convert geometry to WKT and drop original geometry column
                 gdf['geometry'] = gdf['geometry'].apply(lambda geom: geom.wkt if geom else None)
                 
-                # Prepare each Excel file in memory
+                # Prepare each Excel file in memory using openpyxl
                 xlsx_filename = f"{current_datetime}_{key}_output.xlsx"
                 with BytesIO() as file_buffer:
-                    with pd.ExcelWriter(file_buffer, engine='xlsxwriter') as writer:
+                    with pd.ExcelWriter(file_buffer, engine='openpyxl') as writer:
                         gdf.to_excel(writer, index=False, sheet_name=key)
                     
                     file_buffer.seek(0)
@@ -470,11 +473,9 @@ if st.session_state.geo_dfs and not st.session_state.output_dir_set:
             data=zip_buffer,
             file_name=f'isochrones_{current_datetime}.zip',
             mime='application/zip',
-            on_click=clear_session_state  # Callback function to clear session state
+            on_click=lambda: setattr(st.session_state, 'output_dir_set', True)  # Set flag to True
         )
         
-        st.session_state.output_dir_set = True
-
     except Exception as e:
         st.error(f"An error occurred while creating the download package: {e}")
 
