@@ -108,6 +108,26 @@ if uploaded_files:
 
                 gdf = gdf.rename(columns={'geometry': new_file_name})
                 gdf = gdf.set_geometry(new_file_name)
+                # Set the Coordinate Reference System (CRS)
+                gdf.set_crs('EPSG:4326', inplace=True)
+
+
+
+                # # Convert the 'geometry' column from WKT strings to actual geometries
+                # df['geometry'] = df['geometry'].apply(wkt.loads)
+                
+                # # Convert the DataFrame to a GeoDataFrame
+                # gdf = gpd.GeoDataFrame(df, geometry='geometry')
+                # gdf = gdf.rename(columns={'geometry': new_file_name})
+                
+                # # Correctly assign the geometry column after renaming
+                # gdf.set_geometry(new_file_name, inplace=True)
+
+                # # Set the Coordinate Reference System (CRS)
+                # gdf.set_crs('EPSG:4326', inplace=True)
+
+
+
 
             if new_file_name not in gdf.columns or not gpd.GeoSeries(gdf[new_file_name]).is_valid.all():
                 raise ValueError(f"The geometry column '{new_file_name}' is not valid in the file '{uploaded_file.name}'.")
