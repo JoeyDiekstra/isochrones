@@ -10,3 +10,4 @@
   - tqdm=4.65.0
   - streamlit-folium=0.23.0
   - pyogrio
+  - fiona
