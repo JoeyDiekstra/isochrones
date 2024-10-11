@@ -17,8 +17,6 @@ import zipfile
 from io import BytesIO
 import folium
 from streamlit_folium import folium_static
-import pyogrio
-import libpoppler
 
 ## -------------------------------------------------------------------------------------------------------------------------------------
 ## Read data
@@ -428,49 +426,50 @@ if st.button('Generate Isochrones') and not st.session_state.process_started:
 # if 'output_dir_set' not in st.session_state:
 #     st.session_state.output_dir_set = False
 
-
 import streamlit as st
-from io import BytesIO
 from datetime import datetime
+import zipfile
+from io import BytesIO
 import pandas as pd
-from shapely.wkt import dumps
+
+# Assuming you have already imported necessary modules such as geopandas
 
 # Step 2: Provide a download option for the generated output
 if st.session_state.geo_dfs and not st.session_state.output_dir_set:
     try:
         current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
-        excel_buffer = BytesIO()  # Create an in-memory buffer for the Excel file
+        zip_buffer = BytesIO()  # Create an in-memory buffer for the ZIP file
 
-        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
             for key, gdf in st.session_state.geo_dfs.items():
-                # Convert geometry to WKT
-                gdf['geometry_wkt'] = gdf['geometry'].apply(dumps)
+                # Convert geometry to WKT and drop original geometry column
+                gdf['geometry'] = gdf['geometry'].apply(lambda geom: geom.wkt if geom else None)
                 
-                # Drop the original geometry column
-                df = gdf.drop(columns='geometry')
-                
-                # Write each dataframe to a separate sheet in the Excel workbook
-                # sheet_name = f"{current_datetime}_{key}_output"
-                df.to_excel(writer, index=False)
-        
-        excel_buffer.seek(0)
-        
-        # Offer the Excel file for download
+                # Prepare each Excel file in memory
+                xlsx_filename = f"{current_datetime}_{key}_output.xlsx"
+                with BytesIO() as file_buffer:
+                    with pd.ExcelWriter(file_buffer, engine='xlsxwriter') as writer:
+                        gdf.to_excel(writer, index=False, sheet_name=key)
+                    
+                    file_buffer.seek(0)
+                    zf.writestr(xlsx_filename, file_buffer.read())  # Write to ZIP
+
+        zip_buffer.seek(0)
+
+        # Offer the ZIP file for download
         st.download_button(
-            label="Download Excel",
-            data=excel_buffer,
-            file_name=f'isochrones_{current_datetime}.xlsx',
-            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            label="Download Excel Files",
+            data=zip_buffer,
+            file_name=f'isochrones_{current_datetime}.zip',
+            mime='application/zip',
             on_click=clear_session_state  # Callback function to clear session state
         )
         
-        # st.success("All data frames have been prepared for download.")
         st.session_state.output_dir_set = True
+
     except Exception as e:
         st.error(f"An error occurred while creating the download package: {e}")
 
 # Initialize session state variables if they don't exist
 if 'output_dir_set' not in st.session_state:
     st.session_state.output_dir_set = False
-
-

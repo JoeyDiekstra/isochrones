@@ -16,6 +16,10 @@ from folium.plugins import MarkerCluster
 from streamlit_folium import folium_static
 
 
+# os.chdir(r"C:\Users\Joey.Diekstra\OneDrive - OC&C Strategy Consultants\Personal\python\location_analytics\output")
+
+# df = pd.read_excel("20241011_133600_walking_2_minutes_output.xlsx")
+
 # ---------------------------------------------------------------------------
 # Introduce page
 # ---------------------------------------------------------------------------
@@ -142,18 +146,59 @@ if st.button('Read Data') and uploaded_files and uploaded_excel_file and all([la
         geo_dfs = {}
         gdf_names_dict = {}
 
+        import geopandas as gpd
+        import pandas as pd
+        from shapely import wkt
+        from shapely.geometry import MultiPolygon
+        from shapely import wkt
+        import logging
+
+        def safe_wkt_loads(geom):
+            try:
+                # Attempt to load WKT
+                return wkt.loads(geom)
+            except Exception as e:
+                # Log detailed information for debugging
+                logging.error(f"Failed to parse WKT: {geom[:100]}... Error: {e}")
+                # You can choose to return None or handle it differently
+                return None
+
+        
+        # Assuming uploaded_files is a list of uploaded XLSX files.
+        
         for uploaded_file in uploaded_files:
             new_file_name = generate_and_validate_filename(uploaded_file.name)
-            gdf = gpd.read_file(uploaded_file)
-            if 'geometry' in gdf.columns:
+            
+            # Read the Excel file into a Pandas DataFrame
+            df = pd.read_excel(uploaded_file)
+        
+            if 'geometry' in df.columns:
+                # Convert the 'geometry' column from WKT strings to actual geometries
+                df['geometry'] = df['geometry'].apply(safe_wkt_loads)
+                
+                # Convert the DataFrame to a GeoDataFrame
+                gdf = gpd.GeoDataFrame(df, geometry='geometry')
                 gdf = gdf.rename(columns={'geometry': new_file_name})
-                gdf = gdf.set_geometry(new_file_name)
-            if new_file_name not in gdf.columns or not gpd.GeoSeries(gdf[new_file_name]).is_valid.all():
-                raise ValueError(f"The geometry column '{new_file_name}' is not valid in the file '{uploaded_file.name}'.")
-            gdf.set_crs('EPSG:4326', inplace=True)
-            geo_dfs[new_file_name] = gdf
-            gdf_names_dict[new_file_name] = uploaded_file.name
+                
+                # Correctly assign the geometry column after renaming
+                gdf.set_geometry(new_file_name, inplace=True)
 
+                # Set the Coordinate Reference System (CRS)
+                gdf.set_crs('EPSG:4326', inplace=True)
+                
+                # Validate and potentially rename the geometry column
+                if new_file_name not in gdf.columns or not gdf.is_valid.all():
+                    raise ValueError(f"The geometry column in the file '{uploaded_file.name}' is not valid.")
+                
+                # Set the Coordinate Reference System (CRS)
+                # gdf.set_crs('EPSG:4326', inplace=True)
+                
+                # Store the GeoDataFrame in a dictionary with its name
+                geo_dfs[new_file_name] = gdf
+                gdf_names_dict[new_file_name] = uploaded_file.name
+            else:
+                raise ValueError(f"No 'geometry' column found in the file '{uploaded_file.name}'.")
+        
         # Read input Excel file
         input_df = pd.read_excel(uploaded_excel_file)
 
