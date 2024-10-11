@@ -1,0 +1,11 @@
+  - streamlit=1.37.1
+  - pandas=2.1.4
+  - geopandas=0.14.2
+  - requests=2.31.0
+  - matplotlib=3.8.0
+  - shapely=2.0.1
+  - python-dotenv=0.21.0
+  - openpyxl=3.0.10
+  - folium=0.14.0
+  - tqdm=4.65.0
+  - streamlit-folium=0.23.0
