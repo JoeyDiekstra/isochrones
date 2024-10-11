@@ -24,7 +24,7 @@ from streamlit_folium import folium_static
 # Introduce page
 st.title("Isochrone Amenities Analysis")
 st.markdown("""
-This tool calculates the availability of various amenities (e.g., schools, supermarkets, shops) within each isochrone generated in step 1. 
+This analysis involves calculating the availability of various amenities (e.g., schools, supermarkets, shops) within each isochrone generated in step 1. 
 For each isochrone, it provides a count of the different types of amenities.
 """)
 

@@ -23,7 +23,7 @@ from shapely.geometry import MultiPolygon
 st.title("Isochrone Population Analysis")
 
 st.markdown("""
-This involves calculating demographic and property data for each generated isochrone:
+This analysis involves calculating demographic and property data for each generated isochrone:
 
 - Population by Age Group
 - Average Property Value
