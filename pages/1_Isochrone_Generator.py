@@ -24,8 +24,7 @@ import zipfile
 # Title and Description
 st.title("Isochrone Generator")
 st.markdown("""
-**Welcome to the Isochrone Generator App!**
-This application allows you to generate isochrones, which are areas of equal travel time to a specific point.
+This step allows you to generate isochrones, which are areas of equal travel time to a specific point.
 You can specify various inputs and see the results in real-time as you interact with the app.
 """)
 
