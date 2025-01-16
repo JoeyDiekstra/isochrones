@@ -6,8 +6,8 @@ import streamlit as st
 import os
 import time
 import pandas as pd
-import geopandas as gpd
 import requests
+import geopandas as gpd
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, MultiPolygon
 from dotenv import load_dotenv, find_dotenv
