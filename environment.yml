@@ -1,7 +1,7 @@
 name: isochrone_env
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
   - python=3.11.7
   - streamlit=1.37.1
@@ -15,3 +15,8 @@ dependencies:
   - folium=0.14.0
   - tqdm=4.65.0
   - streamlit-folium=0.23.0
+  - fiona
+  - pyproj
+  - rtree
+  - gdal
+
